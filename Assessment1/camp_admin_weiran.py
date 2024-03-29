@@ -1,6 +1,6 @@
 # ============== Selwyn Campground MAIN PROGRAM ==============
 # Student Name: Weiran Wang
-# Student ID : buzhidao
+# Student ID : 1162162
 # NOTE: Make sure your two files are in the same folder
 # =================================================================================
 
@@ -73,14 +73,18 @@ def list_customers():
 
 
 def list_campsites():
-    # List the ID, name, occupancy
-    col_name_phone = {"First Name":str,"Last Name":str,"Phone":str}
-    db_name_phone = []
-    for passenger in db_passengers:
-        db_name_phone.append((passenger[1],passenger[2],passenger[4]))
-    print()
-    column_output(db_name_phone,col_name_phone,"{: <10}  {: <10}  {: <15}")
-
+    # List the ID, name, occupancy 
+    # site identifier and maximum occupancy
+    col_id_occupancy = {"Id":str,"Maximum occupacny":int}
+    db_campsites_id_occupancy = []
+    for site in UNPS:
+        db_campsites_id_occupancy.append((site[0],site[1]))
+    for site in PS:
+        db_campsites_id_occupancy.append((site[0],site[1]))
+    column_output(db_campsites_id_occupancy,col_id_occupancy,"{: <5}  {: <5}")
+    
+    input("\nPress Enter to continue.")     # Pauses the code to allow the user to see the output
+    
 def list_campers_by_date():
     # List the Date, name, site, occupancy
     pass  # REMOVE this line once you have some function code (a function must have one line of code, so this temporary line keeps Python happy so you can run the code)
@@ -88,22 +92,11 @@ def list_campers_by_date():
 def add_customer():
     # Add a customer to the db_customers database, use the next_id to get an id for the customer.
     # Remember to add all required dictionaries.
-    
-    # TODO
-    # Know the type, columns of a customer
-    # e.g. 1660(this is id):{'name':"Heidi",'email':"HDelaney@gmail.com",'phone':"(028) 294-2819"}
-    # Get the value of each column from user's input
-    # ...
-    # For ID column, use next_id to get one
-    # id = ?
-    # Validate input value
-    # Add to db
-    db_data_customer = camp_data.db_customers
     print("==== Add Customer ===")
     # Input and validate name
-    name = input("Please input your name: ")
+    name = input("Please input your full name: ")
     while name == "":
-        name = input("Name cannot be empty, please re-enter your name: ")
+        name = input("Name cannot be empty, please re-enter your full name: ")
     # Input and validate email
     email = input("Please input your email: ")
     emailValid = "@" in email
@@ -112,7 +105,7 @@ def add_customer():
                       "Please re-enter: ")
         emailValid = "@" in email
     # Input and validate phone_number_area_code
-    phone_number_area_code = input("Please input your phone number area code: ")
+    phone_number_area_code = input("Please input your phone number area code (up to 3 digit): ")
     areaCodeValid = (len(phone_number_area_code) > 0 and 
                      len(phone_number_area_code) < 4 and 
                      phone_number_area_code.isdigit())
@@ -130,14 +123,49 @@ def add_customer():
                              "Please re-enter your 7 digit phone number: ")
         phoneNumberValid = len(phone_number_area_code) < 4 and phone_number_area_code.isdigit()
     # Write the entry to customer dictionary
-    db_data_customer[next_id(camp_data.db_customers)] = { 'name': name, 'email': email, 'phone': "(" + phone_number_area_code + ") " + phone_number[:3] + '-' + phone_number[3:]}
+    newId = next_id(camp_data.db_customers)
+    camp_data.db_customers[newId] = {   'name': name, 
+                                        'email': email, 
+                                        'phone': "(" + 
+                                        phone_number_area_code + ") " + 
+                                        phone_number[:3] + '-' + phone_number[3:]}
+    print("==== The customer info has been added ====")
+    input("\nPress Enter to continue.")     # Pauses the code to allow the user to see the output
+
+def remove_site_taken(site_name, site_list):
+    return [site for site in site_list if site[0] != site_name]
 
 def add_booking():
     # Add a booking
     # Remember to validate customer ids and sites
+    col_sites_avaliable = {"Id":str,"Maximum occupacny":int}
+    print("==== Add Booking ====")
+    # Input and validate id
+    id = input("Please input the customer id: ")
+    while not int(id) in db_customers :
+        id = input("Id doesn't exist, please re-enter the customer id: ")
+    # Start date (desired validation: should be digit, should be today or later than today)
+    start_date_string = input("Start date for the customer (YYYY-MM-DD): ")
+    start_date = datetime.datetime.strptime(start_date_string, '%Y-%m-%d').date()    
+    # How many nights (desired validation: should be digit, should be positive integer)
+    number_of_nights = int(input("Please input the number of staying nights: "))
+    # Occupants
+    number_of_occupants = int(input("Please input the occupants: "))
+    # Filter vailable sites
+    sites_avaliable = UNPS.copy() + PS.copy()
+    # => Site: avaliable in the time range, less than max occupants
+    for i in range(0, number_of_nights):
+        if start_date + datetime.timedelta(days=i) in db_bookings:
+            for site_list in db_bookings[start_date + datetime.timedelta(days=i)]:
+                for site_taken in site_list:
+                    sites_avaliable = remove_site_taken(site_taken[0], sites_avaliable)
+    sites_avaliable = [site for site in sites_avaliable if site[1] > number_of_occupants]
 
-    pass  # REMOVE this line once you have some function code (a function must have one line of code, so this temporary line keeps Python happy so you can run the code)
+    print("Here are the sites: ")
+    column_output(sites_avaliable,col_sites_avaliable,"{: <5}  {: <5}")
 
+    booking_site = input("Please input the site you want to orde: ")
+    # add it to the dic
 
 
 # function to display the menu
@@ -145,10 +173,10 @@ def disp_menu():
     print("==== WELCOME TO SELWYN CAMPGROUND ===")
     print(" 1 - List Customers")
     print(" 2 - List Campsites")
-    print(" 3 - List Campers (Specific Date")
+    print(" 3 - List Campers (Specific Date)")
     print(" 4 - Add Customer")
     print(" 5 - Add Booking")
-    print(" X - eXit (stops the program)")
+    print(" X - Exit (stops the program)")
 
 
 # ------------ This is the main program ------------------------
